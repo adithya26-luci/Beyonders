@@ -8,7 +8,7 @@ import {
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
-const navItems = [
+export const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard, short: 'Dash' },
   { path: '/climate-engine', label: 'Climate Engine', icon: Clock, short: 'Engine' },
   { path: '/climate-windows', label: 'Climate Windows', icon: Zap, short: 'Windows' },
@@ -30,7 +30,7 @@ export function Sidebar() {
     <motion.aside
       animate={{ width: collapsed ? 64 : 240 }}
       transition={{ duration: 0.3, ease: 'easeInOut' }}
-      className="relative flex flex-col h-screen bg-sidebar border-r border-sidebar-border flex-shrink-0 overflow-hidden"
+      className="relative hidden md:flex flex-col h-screen bg-sidebar border-r border-sidebar-border flex-shrink-0 overflow-hidden"
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border flex-shrink-0">
