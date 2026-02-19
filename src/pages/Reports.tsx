@@ -1,8 +1,12 @@
+import { useRef } from 'react';
 import { motion } from 'framer-motion';
-import { PageHeader, SectionCard, StatusBadge } from '@/components/climate/ClimateComponents';
+import { PageHeader, SectionCard } from '@/components/climate/ClimateComponents';
 import { Download, FileText, BarChart3, Wind, Activity, Calendar } from 'lucide-react';
 import { historicalData } from '@/data/mockData';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import { toast } from 'sonner';
 
 const reports = [
   { title: 'Daily Climate Report', date: 'Today', icon: <Calendar className="w-4 h-4" />, status: 'Ready', pages: 4, color: 'primary' },
@@ -13,8 +17,34 @@ const reports = [
 ];
 
 export default function Reports() {
+  const reportRef = useRef<HTMLDivElement>(null);
+
+  const handleDownloadPDF = async () => {
+    if (!reportRef.current) return;
+
+    try {
+      toast.info('Generating PDF report...');
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        backgroundColor: '#1E293B', // Dark background for PDF
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save('climate-report.pdf');
+      toast.success('Report downloaded successfully');
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      toast.error('Failed to generate PDF');
+    }
+  };
+
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6" ref={reportRef}>
       <PageHeader title="Reports & Insights" subtitle="AI-generated climate analysis reports with historical data and predictions" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -27,7 +57,10 @@ export default function Reports() {
             <p className="text-sm font-semibold text-foreground mb-1">{r.title}</p>
             <p className="text-[10px] text-muted-foreground mb-3">{r.date} · {r.pages} pages</p>
             <div className="flex gap-2">
-              <button className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-primary/10 text-primary text-xs hover:bg-primary/20 transition-colors">
+              <button
+                onClick={handleDownloadPDF}
+                className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-primary/10 text-primary text-xs hover:bg-primary/20 transition-colors"
+              >
                 <Download className="w-3 h-3" /> PDF
               </button>
               <button className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-surface-2 text-muted-foreground text-xs hover:bg-surface-3 transition-colors">

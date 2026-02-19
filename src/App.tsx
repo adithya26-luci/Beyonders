@@ -13,8 +13,8 @@ import ActivityGuidance from "./pages/ActivityGuidance";
 import ClimatePlanning from "./pages/ClimatePlanning";
 import RecoveryWindow from "./pages/RecoveryWindow";
 import PredictionsAnalytics from "./pages/PredictionsAnalytics";
-import AIAssistant from "./pages/AIAssistant";
 import Reports from "./pages/Reports";
+import CarbonOffset from "./pages/CarbonOffset";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,7 +36,7 @@ const App = () => (
             <Route path="/planning" element={<ClimatePlanning />} />
             <Route path="/recovery" element={<RecoveryWindow />} />
             <Route path="/predictions" element={<PredictionsAnalytics />} />
-            <Route path="/ai-assistant" element={<AIAssistant />} />
+            <Route path="/carbon-offset" element={<CarbonOffset />} />
             <Route path="/reports" element={<Reports />} />
           </Route>
           <Route path="*" element={<NotFound />} />

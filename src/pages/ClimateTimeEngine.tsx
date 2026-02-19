@@ -106,7 +106,7 @@ export default function ClimateTimeEngine() {
           {/* Current Output */}
           <div className={cn('rounded-2xl p-5 border',
             status === 'critical' ? 'status-critical-bg animate-critical-pulse' :
-            status === 'strained' ? 'status-strained-bg' : 'status-safe-bg'
+              status === 'strained' ? 'status-strained-bg' : 'status-safe-bg'
           )}>
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -121,8 +121,8 @@ export default function ClimateTimeEngine() {
             </div>
             <p className="text-xs text-muted-foreground">
               {status === 'critical' ? '⚠️ Dangerous conditions. Human health at risk outdoors. Energy grid stressed.' :
-               status === 'strained' ? '⚡ Elevated risk. Exercise caution. Schedule activities for safe windows.' :
-               '✅ Conditions favorable. Outdoor activity permitted. Recovery in progress.'}
+                status === 'strained' ? '⚡ Elevated risk. Exercise caution. Schedule activities for safe windows.' :
+                  '✅ Conditions favorable. Outdoor activity permitted. Recovery in progress.'}
             </p>
           </div>
 
@@ -186,6 +186,30 @@ export default function ClimateTimeEngine() {
             <Bar dataKey="score" fill="hsl(162 72% 45%)" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
+      </SectionCard>
+      <SectionCard title="Active Sensor Network">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          {[
+            { name: "NOAA Sat-4", type: "Satellite", status: "Active", ping: "24ms", availability: "99.9%" },
+            { name: "IoT Grid #402", type: "Local", status: "Active", ping: "12ms", availability: "98.5%" },
+            { name: "Copernicus Atmosphere", type: "API", status: "Active", ping: "156ms", availability: "99.2%" },
+            { name: "District Thermal", type: "Ground", status: "Active", ping: "8ms", availability: "99.8%" },
+            { name: "Grid Load Sense", type: "Utility", status: "Strained", ping: "42ms", availability: "88.4%" },
+            { name: "Community Nodes", type: "Mesh", status: "Active", ping: "3ms", availability: "97.1%" },
+          ].map((sensor, i) => (
+            <div key={i} className="p-3 rounded-lg bg-surface-2 border border-border/50">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-mono text-muted-foreground">{sensor.type}</span>
+                <div className={`w-1.5 h-1.5 rounded-full ${sensor.status === 'Active' ? 'bg-safe animate-pulse' : 'bg-strained'}`} />
+              </div>
+              <p className="text-xs font-semibold text-foreground truncate">{sensor.name}</p>
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-[10px] text-muted-foreground font-mono">{sensor.ping}</p>
+                <p className="text-[10px] text-primary font-mono">{sensor.availability} Uptime</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </SectionCard>
     </div>
   );

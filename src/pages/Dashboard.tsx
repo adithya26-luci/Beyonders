@@ -1,14 +1,18 @@
-import { motion } from 'framer-motion';
+import { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, RadialBarChart, RadialBar, Legend
 } from 'recharts';
-import { Thermometer, Droplets, Wind, Cpu, Zap, TrendingUp, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { Thermometer, Droplets, Wind, Cpu, Zap, TrendingUp, AlertTriangle, CheckCircle, Clock, MapPin, Search, Crosshair, Loader2 } from 'lucide-react';
 import { StatusBadge, MetricCard, PageHeader, SectionCard } from '@/components/climate/ClimateComponents';
+import { DashboardAIAssistant } from '@/components/layout/DashboardAIAssistant';
+import { ClimateMap } from '@/components/climate/ClimateMap';
 import {
   currentMetrics, currentStatus, currentStressScore,
-  todayTimeline, predictions
+  todayTimeline, predictions, locations, getLocationData, searchLocation
 } from '@/data/mockData';
+import { fetchWeather, searchCity } from '@/lib/weatherApi';
 
 const fadeUp = {
   initial: { opacity: 0, y: 20 },
@@ -35,6 +39,65 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function Dashboard() {
+  const [selectedLocationId, setSelectedLocationId] = useState('local');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [customLocationData, setCustomLocationData] = useState<any>(null);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+
+  const [isSearching, setIsSearching] = useState(false);
+
+  const locationData = useMemo(() => {
+    if (customLocationData) return customLocationData;
+    return getLocationData(selectedLocationId);
+  }, [selectedLocationId, customLocationData]);
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+
+    setIsSearching(true);
+    try {
+      const data = await searchCity(searchQuery);
+      setCustomLocationData(data);
+      setSelectedLocationId(data.id);
+      setSearchQuery('');
+    } catch (error) {
+      console.error('Search error:', error);
+      alert('City not found. Please try again.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleLocateMe = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser');
+      return;
+    }
+
+    setIsLoadingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const data = await fetchWeather(latitude, longitude);
+          setCustomLocationData(data);
+          setSelectedLocationId(data.id);
+        } catch (error) {
+          console.error('Error fetching weather:', error);
+          alert('Failed to fetch weather data');
+        } finally {
+          setIsLoadingLocation(false);
+        }
+      },
+      (error) => {
+        console.error('Geolocation error:', error);
+        setIsLoadingLocation(false);
+        alert('Unable to retrieve your location');
+      }
+    );
+  };
+
   const chartData = todayTimeline.map(s => ({
     time: s.label,
     stress: s.stressScore,
@@ -61,12 +124,50 @@ export default function Dashboard() {
       <PageHeader
         title="Climate Dashboard"
         subtitle="Real-time overview of your environmental intelligence system"
-      >
-        <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
-          <Clock className="w-3 h-3" />
-          <span>Updated 30s ago</span>
+      />
+
+      {/* Location Toolbar */}
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-surface-1 p-4 rounded-xl border border-border shadow-sm">
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <button
+            onClick={handleLocateMe}
+            disabled={isLoadingLocation}
+            className="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg border border-primary/20 transition-all disabled:opacity-50 text-sm font-medium whitespace-nowrap"
+            title="Use my location"
+          >
+            {isLoadingLocation ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Crosshair className="w-4 h-4" />
+            )}
+            Locate Me
+          </button>
+
+          <div className="h-6 w-px bg-border mx-2 hidden md:block" />
+
+          <form onSubmit={handleSearch} className="relative w-full md:w-64">
+            <input
+              type="text"
+              placeholder="Search city..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 text-sm bg-surface-2 border border-border rounded-lg focus:outline-none focus:border-primary/50 transition-all"
+            />
+            <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+          </form>
         </div>
-      </PageHeader>
+
+        <div className="flex items-center gap-4 text-sm text-muted-foreground w-full md:w-auto justify-between md:justify-end">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-2 rounded-lg border border-border">
+            <MapPin className="w-4 h-4 text-primary" />
+            <span className="font-semibold text-foreground">{locationData.name}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            <span>Updated now</span>
+          </div>
+        </div>
+      </div>
 
       {/* Hero Status Bar */}
       <motion.div
@@ -79,16 +180,20 @@ export default function Dashboard() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-widest mb-2">Current Climate Status</p>
-            <StatusBadge status={currentStatus} score={currentStressScore} size="xl" />
+            <StatusBadge status={locationData.status} score={locationData.stressScore} size="xl" />
             <p className="text-xs text-muted-foreground mt-3 max-w-sm">
-              Elevated temperature + humidity spike detected. Limit outdoor exposure. Peak heat expected 1–3 PM.
+              {locationData.status === 'critical'
+                ? 'Elevated stress detected. Limit outdoor exposure immediately.'
+                : locationData.status === 'strained'
+                  ? 'Conditions are straining. Monitor metrics closely.'
+                  : 'Conditions are optimal. Safe for outdoor activity.'}
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {[
               { label: 'Next Safe Window', value: '8:00 PM', icon: <CheckCircle className="w-3.5 h-3.5" /> },
               { label: 'Critical Until', value: '4:00 PM', icon: <AlertTriangle className="w-3.5 h-3.5" /> },
-              { label: 'Recovery Score', value: '38 / 100', icon: <TrendingUp className="w-3.5 h-3.5" /> },
+              { label: 'Recovery Score', value: `${locationData.recoveryIndex} / 100`, icon: <TrendingUp className="w-3.5 h-3.5" /> },
               { label: 'AI Confidence', value: '83%', icon: <Cpu className="w-3.5 h-3.5" /> },
             ].map((item, i) => (
               <div key={i} className="bg-background/40 rounded-lg p-3 min-w-[120px]">
@@ -103,19 +208,36 @@ export default function Dashboard() {
         </div>
       </motion.div>
 
+      {/* Global Map Section */}
+      <motion.div {...fadeUp} transition={{ delay: 0.15 }}>
+        <SectionCard title="Global Climate Awareness">
+          <ClimateMap
+            onLocationSelect={(id) => {
+              setSelectedLocationId(id);
+              setCustomLocationData(null); // Reset custom search when map is clicked
+            }}
+            selectedId={selectedLocationId}
+            customLocation={customLocationData}
+          />
+        </SectionCard>
+      </motion.div>
+
       {/* Metrics Grid */}
       <motion.div variants={stagger} initial="initial" animate="animate" className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
         {[
-          { label: 'Temperature', value: currentMetrics.temperature, unit: '°C', icon: <Thermometer className="w-4 h-4" />, status: 'strained' as const, subtitle: 'Feels like 41°C' },
-          { label: 'Humidity', value: `${currentMetrics.humidity}%`, unit: '', icon: <Droplets className="w-4 h-4" />, status: 'strained' as const, subtitle: 'High moisture' },
-          { label: 'AQI', value: currentMetrics.aqi, unit: '', icon: <Wind className="w-4 h-4" />, status: 'strained' as const, subtitle: 'Moderate-Poor' },
-          { label: 'Indoor CO₂', value: currentMetrics.co2Indoor, unit: 'ppm', icon: <Cpu className="w-4 h-4" />, status: 'strained' as const, subtitle: 'Above 1000 limit' },
-          { label: 'Energy Load', value: currentMetrics.energyDemand, unit: 'kW', icon: <Zap className="w-4 h-4" />, status: 'critical' as const, subtitle: 'Grid strained' },
-          { label: 'Heat Index', value: currentMetrics.heatIndex, unit: '°C', icon: <Thermometer className="w-4 h-4" />, status: 'critical' as const, subtitle: 'Danger zone' },
-          { label: 'Recovery', value: `${currentMetrics.recoveryIndex}%`, unit: '', icon: <TrendingUp className="w-4 h-4" />, status: 'safe' as const, subtitle: 'Low recovery' },
+          { label: 'Temperature', value: locationData.temperature, unit: '°C', icon: <Thermometer className="w-4 h-4" />, status: locationData.status, subtitle: `Real-time` },
+          { label: 'Humidity', value: `${locationData.humidity}%`, unit: '', icon: <Droplets className="w-4 h-4" />, status: locationData.status, subtitle: 'Moisture level' },
+          { label: 'AQI', value: locationData.aqi, unit: '', icon: <Wind className="w-4 h-4" />, status: (locationData.aqi > 100 ? 'critical' : locationData.aqi > 50 ? 'strained' : 'safe') as 'safe' | 'strained' | 'critical', subtitle: 'Air Quality' },
+          { label: 'Indoor CO₂', value: locationData.co2Indoor, unit: 'ppm', icon: <Cpu className="w-4 h-4" />, status: locationData.status, subtitle: 'Ventilation' },
+          { label: 'Energy Load', value: locationData.energyDemand, unit: 'kW', icon: <Zap className="w-4 h-4" />, status: (locationData.status === 'critical' ? 'critical' : 'strained') as 'safe' | 'strained' | 'critical', subtitle: 'Grid demand' },
+          { label: 'Heat Index', value: locationData.heatIndex, unit: '°C', icon: <Thermometer className="w-4 h-4" />, status: locationData.status, subtitle: 'Feels like' },
+          { label: 'Recovery', value: `${locationData.recoveryIndex}%`, unit: '', icon: <TrendingUp className="w-4 h-4" />, status: 'safe' as const, subtitle: 'Resilience' },
         ].map((m, i) => (
           <motion.div key={i} variants={fadeUp}>
-            <MetricCard {...m} />
+            <MetricCard
+              {...m}
+              status={m.status as 'safe' | 'strained' | 'critical'}
+            />
           </motion.div>
         ))}
       </motion.div>
@@ -185,11 +307,10 @@ export default function Dashboard() {
         <SectionCard title="Short-Term Predictions (Next 3 Hours)">
           <div className="grid grid-cols-3 gap-3">
             {predData.slice(0, 3).map((p, i) => (
-              <div key={i} className={`rounded-xl p-4 ${
-                predictions[i + 1]?.status === 'critical' ? 'status-critical-bg' :
+              <div key={i} className={`rounded-xl p-4 ${predictions[i + 1]?.status === 'critical' ? 'status-critical-bg' :
                 predictions[i + 1]?.status === 'strained' ? 'status-strained-bg' :
-                'status-safe-bg'
-              }`}>
+                  'status-safe-bg'
+                }`}>
                 <p className="text-xs text-muted-foreground font-mono mb-1">{p.time}</p>
                 <div className="flex items-baseline gap-1 mb-2">
                   <span className="text-xl font-bold text-foreground">{p.stress}</span>
@@ -203,22 +324,8 @@ export default function Dashboard() {
         </SectionCard>
       </motion.div>
 
-      {/* AI Quick Recommendation */}
-      <motion.div {...fadeUp} transition={{ delay: 0.4 }}>
-        <div className="rounded-xl p-4 border border-primary/20 bg-primary/5">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0">
-              <span className="text-xs font-bold text-primary-foreground">AI</span>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-foreground mb-1">AI Climate Copilot Recommendation</p>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Based on current conditions and ML forecast: <strong className="text-foreground">Avoid outdoor activities until 8 PM.</strong> Ensure indoor CO₂ is managed — open windows after 8 PM. Schedule heavy appliance use after 10 PM. Children should remain indoors during 11 AM – 4 PM peak. The next 3 hours will reach <strong className="text-critical">Critical level</strong>; prioritize hydration and energy conservation.
-              </p>
-            </div>
-          </div>
-        </div>
-      </motion.div>
+      {/* AI Assistant Floating Widget */}
+      <DashboardAIAssistant />
     </div>
   );
 }

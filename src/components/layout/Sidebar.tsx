@@ -1,8 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  LayoutDashboard, Clock, Zap, Activity, Calendar, 
-  Compass, Users, Shield, BarChart3, Bot, FileText,
+import {
+  LayoutDashboard, Clock, Zap, Activity, Calendar,
+  Compass, Users, Shield, BarChart3, FileText,
   Leaf, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { useState } from 'react';
@@ -18,7 +18,7 @@ const navItems = [
   { path: '/planning', label: 'Climate Planning', icon: Users, short: 'Planning' },
   { path: '/recovery', label: 'Recovery Windows', icon: Shield, short: 'Recovery' },
   { path: '/predictions', label: 'Predictions & ML', icon: BarChart3, short: 'Predict' },
-  { path: '/ai-assistant', label: 'AI Copilot', icon: Bot, short: 'AI' },
+  { path: '/carbon-offset', label: 'Carbon Offsetting', icon: Leaf, short: 'Offset' },
   { path: '/reports', label: 'Reports & Insights', icon: FileText, short: 'Reports' },
 ];
 
@@ -34,8 +34,8 @@ export function Sidebar() {
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border flex-shrink-0">
-        <div className="flex-shrink-0 w-8 h-8 rounded-lg gradient-primary flex items-center justify-center glow-primary">
-          <Leaf className="w-4 h-4 text-primary-foreground" />
+        <div className="flex-shrink-0 w-8 h-8 rounded-lg overflow-hidden border border-primary/20">
+          <img src="/logo.jpeg" alt="Climate Time Logo" className="w-full h-full object-cover" />
         </div>
         {!collapsed && (
           <motion.div
@@ -44,7 +44,7 @@ export function Sidebar() {
             exit={{ opacity: 0 }}
             className="overflow-hidden"
           >
-            <span className="text-sm font-bold text-foreground tracking-tight">EcoVate</span>
+            <span className="text-sm font-bold text-foreground tracking-tight">Climate Time</span>
             <p className="text-[10px] text-muted-foreground font-mono">Climate Intelligence</p>
           </motion.div>
         )}

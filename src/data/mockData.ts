@@ -1,4 +1,4 @@
-// Mock climate data for EcoVate platform
+// Mock climate data for Climate Time platform
 
 export type ClimateStatus = 'safe' | 'strained' | 'critical';
 
@@ -148,3 +148,132 @@ export const weeklyResilience = {
   business: 81,
   office: 68,
 };
+
+// Location Analysis Data
+export interface LocationData extends EnvironmentalMetrics {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  status: ClimateStatus;
+  stressScore: number;
+}
+
+export const locations: LocationData[] = [
+  {
+    id: 'local',
+    name: 'New Delhi, India',
+    lat: 28.6139,
+    lng: 77.2090,
+    temperature: 34.2, humidity: 78, aqi: 187, co2Indoor: 1240, energyDemand: 6.8, heatIndex: 41, recoveryIndex: 38,
+    status: 'critical', stressScore: 78, timestamp: new Date()
+  },
+  {
+    id: 'nyc',
+    name: 'New York, USA',
+    lat: 40.7128,
+    lng: -74.0060,
+    temperature: 24.5, humidity: 45, aqi: 42, co2Indoor: 450, energyDemand: 4.2, heatIndex: 26, recoveryIndex: 85,
+    status: 'safe', stressScore: 24, timestamp: new Date()
+  },
+  {
+    id: 'tokyo',
+    name: 'Tokyo, Japan',
+    lat: 35.6762,
+    lng: 139.6503,
+    temperature: 29.8, humidity: 82, aqi: 110, co2Indoor: 900, energyDemand: 8.5, heatIndex: 35, recoveryIndex: 45,
+    status: 'strained', stressScore: 65, timestamp: new Date()
+  },
+  {
+    id: 'mumbai',
+    name: 'Mumbai, India',
+    lat: 19.0760,
+    lng: 72.8777,
+    temperature: 31.5, humidity: 88, aqi: 156, co2Indoor: 1100, energyDemand: 7.2, heatIndex: 43, recoveryIndex: 30,
+    status: 'critical', stressScore: 88, timestamp: new Date()
+  },
+  {
+    id: 'london',
+    name: 'London, UK',
+    lat: 51.5074,
+    lng: -0.1278,
+    temperature: 18.2, humidity: 60, aqi: 35, co2Indoor: 500, energyDemand: 3.8, heatIndex: 18, recoveryIndex: 92,
+    status: 'safe', stressScore: 15, timestamp: new Date()
+  }
+];
+
+export function getLocationData(id: string): LocationData {
+  return locations.find(l => l.id === id) || locations[0];
+}
+
+export function searchLocation(query: string): LocationData {
+  const normQuery = query.toLowerCase().trim();
+  const existing = locations.find(l =>
+    l.id === normQuery ||
+    l.name.toLowerCase().includes(normQuery)
+  );
+
+  if (existing) return existing;
+
+  // Generate deterministic mock data based on name length
+  const seed = query.length;
+  const isCritical = seed % 3 === 0;
+  const isStrained = seed % 3 === 1;
+  const status: ClimateStatus = isCritical ? 'critical' : isStrained ? 'strained' : 'safe';
+
+  return {
+    id: `custom-${normQuery}`,
+    name: query.charAt(0).toUpperCase() + query.slice(1),
+    lat: 30 + (seed * 5) % 30, // Random-ish lat
+    lng: -100 + (seed * 10) % 100, // Random-ish lng
+    temperature: 20 + (seed * 2) % 25,
+    humidity: 40 + (seed * 5) % 50,
+    aqi: 30 + (seed * 10) % 150,
+    co2Indoor: 400 + (seed * 50) % 1000,
+    energyDemand: 2 + (seed % 8),
+    heatIndex: 22 + (seed * 2) % 20,
+    recoveryIndex: 100 - (seed * 5) % 80,
+    status,
+    stressScore: isCritical ? 80 + (seed % 20) : isStrained ? 50 + (seed % 20) : 20 + (seed % 10),
+    timestamp: new Date()
+  };
+}
+
+// Carbon Offset Feature Data
+export interface CO2Sensor {
+  id: string;
+  name: string;
+  location: string;
+  value: number; // ppm
+  unit: string;
+  status: 'safe' | 'strained' | 'critical';
+  trend: 'up' | 'down' | 'stable';
+  lastUpdated: Date;
+}
+
+export interface OffsetProject {
+  id: string;
+  name: string;
+  type: 'Reforestation' | 'Renewable Energy' | 'Methane Capture' | 'Community';
+  location: string;
+  costPerTon: number; // in USD or Credits
+  availableCredits: number;
+  description: string;
+  image: string; // url or placeholder
+  verified: boolean;
+}
+
+export const co2Sensors: CO2Sensor[] = [
+  { id: 's1', name: 'Factory Unit A - Main Exhaust', location: 'Zone 1', value: 420, unit: 'ppm', status: 'safe', trend: 'stable', lastUpdated: new Date() },
+  { id: 's2', name: 'Server Room B', location: 'Zone 2', value: 850, unit: 'ppm', status: 'strained', trend: 'up', lastUpdated: new Date() },
+  { id: 's3', name: 'Production Line C', location: 'Zone 3', value: 1100, unit: 'ppm', status: 'critical', trend: 'up', lastUpdated: new Date() },
+  { id: 's4', name: 'Office Area D', location: 'Zone 4', value: 410, unit: 'ppm', status: 'safe', trend: 'down', lastUpdated: new Date() },
+  { id: 's5', name: 'Logistics Hub', location: 'Zone 5', value: 550, unit: 'ppm', status: 'safe', trend: 'stable', lastUpdated: new Date() },
+];
+
+export const offsetProjects: OffsetProject[] = [
+  { id: 'p1', name: 'Amazon Rainforest Protection', type: 'Reforestation', location: 'Brazil', costPerTon: 15, availableCredits: 5000, description: 'Protecting 10,000 hectares of primary rainforest from deforestation.', image: 'https://images.unsplash.com/photo-1516214104703-d870798883c5?auto=format&fit=crop&q=80&w=300', verified: true },
+  { id: 'p2', name: 'Wind Farm Development', type: 'Renewable Energy', location: 'India (Rajasthan)', costPerTon: 12, availableCredits: 12000, description: 'New 50MW wind farm displacing coal energy generation.', image: 'https://images.unsplash.com/photo-1532601224476-15c79f2f7a51?auto=format&fit=crop&q=80&w=300', verified: true },
+  { id: 'p3', name: 'Community Solar Grid', type: 'Community', location: 'Kenya', costPerTon: 20, availableCredits: 2500, description: 'Providing clean solar energy to rural communities.', image: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&q=80&w=300', verified: true },
+  { id: 'p4', name: 'Methane Capture Initiative', type: 'Methane Capture', location: 'USA', costPerTon: 18, availableCredits: 8000, description: 'Capturing methane from landfills to generate electricity.', image: 'https://images.unsplash.com/photo-1542601906990-b4d3fb7d5b1e?auto=format&fit=crop&q=80&w=300', verified: true },
+];
